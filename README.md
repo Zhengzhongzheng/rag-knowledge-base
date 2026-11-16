@@ -38,6 +38,16 @@ EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
 run.bat
 ```
 
+## 网页界面
+
+双击 `run_web.bat`，浏览器会自动打开 `http://localhost:8501`。
+
+网页里可以：
+
+- 像聊天一样提问
+- 查看每条回答引用的来源
+- 对比 BM25 和向量检索分别找到了什么
+
 ## 可以问什么
 
 - 我 11 月应该做什么？
