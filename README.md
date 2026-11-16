@@ -5,7 +5,7 @@
 ## 它做什么
 
 读取 `docs/` 目录下的 Markdown / 文本文件，切成文本块。
-配置了 SiliconFlow Key 时，同时建立 BM25 索引和 Embedding 向量索引；
+启动时加载本地中文 Embedding 模型（首次会下载约 100MB），同时建立 BM25 索引和向量索引；
 你提问时，分别跑两路检索，再用 RRF 融合成最终 Top-3，交给 DeepSeek 回答并标注来源。
 
 ## RAG 流程
@@ -22,14 +22,15 @@ python -m venv .venv
 Copy-Item ..\ai-first-step\.env .env
 ```
 
-然后在 `.env` 里补上 Embedding 配置：
+`.env` 至少需要 DeepSeek Key；Embedding 模型可以用默认值：
 
 ```text
-SILICONFLOW_API_KEY=sk-你的硅基流动key
-EMBEDDING_MODEL=BAAI/bge-m3
+DEEPSEEK_API_KEY=sk-你的DeepSeek key
+EMBEDDING_MODEL=BAAI/bge-small-zh-v1.5
 ```
 
-没有 `SILICONFLOW_API_KEY` 时，程序会自动回退到 BM25，仍可正常使用。
+首次运行会下载本地向量模型。`run.bat` 已设置 `HF_ENDPOINT=https://hf-mirror.com`，
+国内网络下载更稳定；如果模型加载失败，程序会自动回退到 BM25。
 
 然后双击 `run.bat`，或在终端执行：
 
@@ -46,7 +47,7 @@ run.bat
 
 ## 当前版本说明
 
-这一版支持三种检索：
+这一版支持三种检索，向量部分使用本地模型 `BAAI/bge-small-zh-v1.5`（512 维）：
 
 - BM25：关键词检索，轻量、快，但对同义表达不敏感。
 - 向量检索：语义检索，能理解“录用”和“突围”这类不同措辞的相近含义。

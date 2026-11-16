@@ -12,6 +12,7 @@ from pathlib import Path
 import jieba
 import numpy as np
 from dotenv import load_dotenv
+from fastembed import TextEmbedding
 from openai import APIConnectionError, APIStatusError, APITimeoutError, OpenAI
 from rank_bm25 import BM25Plus
 
@@ -22,7 +23,6 @@ DOCS_DIR = BASE_DIR / "docs"
 CHUNK_SIZE = 500
 CHUNK_OVERLAP = 80
 TOP_K = 3
-EMBEDDING_BATCH_SIZE = 16
 RRF_K = 60
 
 load_dotenv(BASE_DIR / ".env")
@@ -39,16 +39,8 @@ chat_client = OpenAI(
     base_url="https://api.deepseek.com",
 )
 
-SILICONFLOW_API_KEY = os.getenv("SILICONFLOW_API_KEY", "").strip()
-EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-m3")
-embedding_client = (
-    OpenAI(
-        api_key=SILICONFLOW_API_KEY,
-        base_url="https://api.siliconflow.cn/v1",
-    )
-    if SILICONFLOW_API_KEY
-    else None
-)
+EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "BAAI/bge-small-zh-v1.5")
+embedding_model: TextEmbedding | None = None
 
 
 def tokenize(text: str) -> list[str]:
@@ -134,20 +126,11 @@ def retrieve_bm25(
 
 
 def embed_texts(texts: list[str]) -> np.ndarray:
-    """调用 SiliconFlow 的 Embedding API，并做 L2 归一化。"""
-    if embedding_client is None:
-        raise RuntimeError("未配置 SILICONFLOW_API_KEY")
+    """使用本地 FastEmbed 模型生成向量，并做 L2 归一化。"""
+    if embedding_model is None:
+        raise RuntimeError("本地向量模型未加载")
 
-    vectors: list[list[float]] = []
-    for start in range(0, len(texts), EMBEDDING_BATCH_SIZE):
-        batch = texts[start : start + EMBEDDING_BATCH_SIZE]
-        response = embedding_client.embeddings.create(
-            model=EMBEDDING_MODEL,
-            input=batch,
-        )
-        vectors.extend([item.embedding for item in response.data])
-
-    array = np.asarray(vectors, dtype=np.float32)
+    array = np.asarray(list(embedding_model.embed(texts)), dtype=np.float32)
     norms = np.linalg.norm(array, axis=1, keepdims=True)
     return array / np.maximum(norms, 1e-10)
 
@@ -264,19 +247,19 @@ def print_results(title: str, hits) -> None:
 
 
 def main() -> None:
+    global embedding_model
+
     chunks = build_chunks()
     bm25 = build_bm25(chunks)
     embeddings: np.ndarray | None = None
 
-    if embedding_client is not None:
-        print(f"正在构建向量索引（模型：{EMBEDDING_MODEL}）...")
-        try:
-            embeddings = build_embedding_index(chunks)
-            print(f"向量索引已构建：{embeddings.shape[0]} 条，维度 {embeddings.shape[1]}")
-        except Exception as exc:
-            print(f"向量索引构建失败，回退到 BM25：{exc}")
-    else:
-        print("未配置 SILICONFLOW_API_KEY，当前只使用 BM25 检索。")
+    print(f"正在加载本地向量模型：{EMBEDDING_MODEL}...")
+    try:
+        embedding_model = TextEmbedding(EMBEDDING_MODEL)
+        embeddings = build_embedding_index(chunks)
+        print(f"向量索引已构建：{embeddings.shape[0]} 条，维度 {embeddings.shape[1]}")
+    except Exception as exc:
+        print(f"向量检索初始化失败，回退到 BM25：{exc}")
 
     print(f"知识库已加载：{len(chunks)} 个文本块，来自 {DOCS_DIR}")
     print("输入问题开始提问，输入 exit 退出。\n")
