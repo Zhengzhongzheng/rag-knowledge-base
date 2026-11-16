@@ -52,6 +52,23 @@ run.bat
 上传的文档会和 `docs/` 里的内置文档一起参与检索。扫描版 PDF 如果没有文字层，
 需要先做 OCR 才能被提取。
 
+## 部署到 Streamlit Community Cloud
+
+1. 打开 https://share.streamlit.io/ ，用 GitHub 登录
+2. 点 New app，选择仓库 `Zhengzhongzheng/rag-knowledge-base`
+3. Branch 选 `main`，Main file path 填 `app.py`
+4. 在 Advanced settings → Secrets 中填入：
+
+```toml
+DEEPSEEK_API_KEY = "sk-你的DeepSeek key"
+```
+
+5. 点 Deploy
+
+首次构建会安装依赖并下载向量模型，可能需要几分钟。
+Linux 运行依赖已在 `packages.txt` 中声明（`libgomp1`），
+Python 版本在 `runtime.txt` 中固定为 3.12。
+
 ## 可以问什么
 
 - 我 11 月应该做什么？

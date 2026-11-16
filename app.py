@@ -2,9 +2,18 @@
 
 import hashlib
 import io
+import os
 
 import streamlit as st
 from pypdf import PdfReader
+
+try:
+    if "DEEPSEEK_API_KEY" in st.secrets:
+        os.environ["DEEPSEEK_API_KEY"] = str(st.secrets["DEEPSEEK_API_KEY"])
+except Exception:
+    pass
+
+os.environ.setdefault("HF_ENDPOINT", "https://hf-mirror.com")
 
 import main
 
