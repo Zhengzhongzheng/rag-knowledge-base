@@ -2,6 +2,17 @@
 
 一个最小可运行的 RAG（检索增强生成）知识库问答项目。
 
+## 在线演示
+
+https://ai-career-rag.streamlit.app
+
+## 项目亮点
+
+- 支持上传 PDF / TXT / MD 文档
+- BM25 关键词检索 + 中文 Embedding 向量检索 + RRF 混合检索
+- 回答带引用来源，可展开查看检索细节
+- 已部署到 Streamlit Community Cloud
+
 ## 它做什么
 
 读取 `docs/` 目录下的 Markdown / 文本文件，切成文本块。
